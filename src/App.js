@@ -11,14 +11,11 @@ const STORE = "transactions";
 export default function App() {
   const { ready, getAll, addItem, deleteItem, updateItem } = useIndexedDB(DB_NAME, 1, STORE);
   const [transactions, setTransactions] = useState([]);
-  const [editing, setEditing] = useState(null);
-  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     if (!ready) return;
     async function load() {
       const all = await getAll();
-      // sort desc by date
       all.sort((a, b) => new Date(b.date) - new Date(a.date));
       setTransactions(all);
     }
@@ -38,57 +35,29 @@ export default function App() {
   async function handleUpdate(id, updated) {
     await updateItem(id, updated);
     setTransactions(prev => prev.map(t => (t.id === id ? { ...t, ...updated } : t)));
-    setEditing(null);
   }
-
-  const filtered = transactions.filter(t => {
-    if (filter === "all") return true;
-    if (filter === "income") return t.amount > 0;
-    if (filter === "expense") return t.amount < 0;
-    return true;
-  });
 
   const totalBalance = transactions.reduce((s, t) => s + Number(t.amount), 0);
 
   return (
     <div className="container">
-      <h1>Controlador de Finanças</h1>
-      <div className="top-row">
-        <Summary transactions={transactions} />
-        <div className="controls">
-          <label>
-            Filtrar:
-            <select value={filter} onChange={e => setFilter(e.target.value)}>
-              <option value="all">Todos</option>
-              <option value="income">Receitas</option>
-              <option value="expense">Despesas</option>
-            </select>
-          </label>
-          <div className="balance">Saldo: <strong>{formatCurrency(totalBalance)}</strong></div>
-        </div>
-      </div>
+      <h1>💰 Controle de Finanças</h1>
 
-      <div className="main-grid">
-        <div className="left">
-          <TransactionForm
-            onAdd={handleAdd}
-            onUpdate={handleUpdate}
-            editing={editing}
-            cancelEdit={() => setEditing(null)}
-          />
-        </div>
+      {/* 1️⃣ Resumo geral */}
+      <Summary transactions={transactions} />
 
-        <div className="right">
-          <TransactionList
-            transactions={filtered}
-            onDelete={handleDelete}
-            onEdit={tx => setEditing(tx)}
-          />
-        </div>
-      </div>
+      {/* 2️⃣ Formulário */}
+      <TransactionForm onAdd={handleAdd} />
+
+      {/* 3️⃣ Lista agrupada */}
+      <TransactionList
+        transactions={transactions}
+        onDelete={handleDelete}
+        onEdit={handleUpdate}
+      />
 
       <footer className="foot">
-        Dados armazenados localmente no seu navegador (IndexedDB). Não há sincronização.
+        Dados armazenados localmente no navegador (IndexedDB).
       </footer>
     </div>
   );
